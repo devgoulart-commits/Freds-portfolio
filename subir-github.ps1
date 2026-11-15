@@ -1,27 +1,25 @@
-# Script para publicar o Portfólio React + Vite no GitHub
+﻿# Script automático para autenticar e publicar o Portfólio React + Vite no GitHub
 $ErrorActionPreference = "Stop"
 
 Set-Location $PSScriptRoot
 
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Host "Git não encontrado. Instalando Git via Winget..." -ForegroundColor Cyan
-    winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+$gitExe = "$env:LOCALAPPDATA\Programs\MinGit\cmd\git.exe"
+$ghExe  = "$env:LOCALAPPDATA\Programs\gh\bin\gh.exe"
+
+Write-Host "1. Verificando autenticação no GitHub..." -ForegroundColor Cyan
+& $ghExe auth status
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Abrindo navegador para autorizar sua conta GitHub (devgoulart-commits)..." -ForegroundColor Yellow
+    & $ghExe auth login --web -h github.com -p https
 }
 
-if (-not (Test-Path ".git")) {
-    git init
-}
+& $ghExe auth setup-git
 
-git branch -M main
+Write-Host "2. Preparando commit na branch main..." -ForegroundColor Cyan
+& $gitExe add .
+& $gitExe commit -m "feat: portfólio React + Vite atualizado com logo pessoal, produtos e assistente IA" 2>$null
 
-$remoteExists = git remote | Select-String -Pattern "^origin$"
-if ($remoteExists) {
-    git remote set-url origin https://github.com/devgoulart-commits/Freds-portfolio.git
-} else {
-    git remote add origin https://github.com/devgoulart-commits/Freds-portfolio.git
-}
+Write-Host "3. Enviando para https://github.com/devgoulart-commits/Freds-portfolio.git ..." -ForegroundColor Cyan
+& $gitExe push -u origin main --force
 
-git add .
-git commit -m "feat: novo portfólio React + Vite com FGA Holding, produtos, logo pessoal e assistente IA"
-git push -u origin main --force
+Write-Host "✅ Projeto enviado com sucesso para https://github.com/devgoulart-commits/Freds-portfolio !" -ForegroundColor Green
